@@ -1,0 +1,26 @@
+class:: SIMDTest
+summary:: a;sldfj
+related:: TODO
+categories:: UGens>TODO
+
+description::
+
+a;sldfj
+
+
+classmethods::
+
+method::ar, kr
+
+argument::TODO
+
+argument::TODO
+
+
+examples::
+
+code::
+
+{ SIMDTest.ar(/* TODO */) }.play
+
+::
