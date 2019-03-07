@@ -22,13 +22,10 @@ namespace SIMDTest {
 
 SIMDTest::SIMDTest()
 {
-//    set_calc_function<SIMDTest, &SIMDTest::next>();
-//    next(1);
-
+	
 #if defined(NOVA_SIMD)
-//	if (boost::alignment::is_aligned( BUFLENGTH, 16 ))
 	if (boost::alignment::is_aligned( bufferSize(), 16 )) {
-		Print("setting NOVA calc func\n");
+		Print("setting SIMD calc func\n");
 		set_calc_function<SIMDTest, &SIMDTest::next_nova>();
 	} else {
 		set_calc_function<SIMDTest, &SIMDTest::next>();
@@ -38,7 +35,6 @@ SIMDTest::SIMDTest()
 #endif
 //	set_calc_function<SIMDTest, &SIMDTest::next>();
 	
-//	DecodeB2_next(unit, 1);
 	next(1);
 	
 	float orientation = in0(3);
@@ -54,14 +50,6 @@ SIMDTest::SIMDTest()
 
 void SIMDTest::next(int nSamples)
 {
-//    const float * input = in(0);
-//    const float * gain = in(0);
-//    float * outbuf = out(0);
-//
-//    // simple gain function
-//    for (int i = 0; i < nSamples; ++i) {
-//        outbuf[i] = input[i] * gain[i];
-//    }
 	const float *Win0 = zin(0);
 	const float *Xin0 = zin(1);
 	const float *Yin0 = zin(2);
@@ -79,11 +67,9 @@ void SIMDTest::next(int nSamples)
 		const float *Win = Win0;
 		const float *Xin = Xin0;
 		const float *Yin = Yin0;
-		for (int j=0; j<nSamples; ++j)
+		for (int j = 0; j < nSamples; ++j)
 		{
-//		LOOP1(inNumSamples,
-			  ZXP(out) = ZXP(Win) * W_amp + ZXP(Xin) * X_amp + ZXP(Yin) * Y_amp;
-//			  );
+			ZXP(out) = ZXP(Win) * W_amp + ZXP(Xin) * X_amp + ZXP(Yin) * Y_amp;
 		}
 		X_tmp = X_amp * cosa + Y_amp * sina;
 		Y_amp = Y_amp * cosa - X_amp * sina;
@@ -93,9 +79,9 @@ void SIMDTest::next(int nSamples)
 	
 void SIMDTest::next_nova(int nSamples)
 {
-	const float *Win0 = zin(0);
-	const float *Xin0 = zin(1);
-	const float *Yin0 = zin(2);
+	const float *Win0 = in(0);
+	const float *Xin0 = in(1);
+	const float *Yin0 = in(2);
 	
 	using namespace nova;
 	vec<float> W_amp = m_W_amp;
@@ -110,8 +96,6 @@ void SIMDTest::next_nova(int nSamples)
 	int loops = nSamples / vs;
 	for (int i=0; i<numOutputs; ++i) {
 		float * outptr = out(i);
-//		float * outptr = OUT(i);
-//		float * outptr = mOutBuf[i];
 		const float *Win = Win0;
 		const float *Xin = Xin0;
 		const float *Yin = Yin0;
@@ -121,9 +105,6 @@ void SIMDTest::next_nova(int nSamples)
 			w.load_aligned(Win); x.load_aligned(Xin); y.load_aligned(Yin);
 			result = w * W_amp + x * X_amp + y * Y_amp;
 			result.store_aligned(outptr);
-//			for (int k = 0; k != vs; ++k) {
-//				outptr[k] = result.data_[k];
-//			}
 			outptr += vs; Win += vs; Xin += vs; Yin += vs;
 		};
 		
@@ -138,18 +119,19 @@ void SIMDTest::next_nova(int nSamples)
 PluginLoad(SIMDTestUGens) {
     // Plugin magic
     ft = inTable;
-	//	DefineSimpleCantAliasUnit(SIMDTest);
-	registerUnit<SIMDTest::SIMDTest>(ft, "SIMDTest");
-//	registerUnit<SIMDTest::SIMDTest>(ft, "SIMDTest", 1);
+//	registerUnit<SIMDTest::SIMDTest>(ft, "SIMDTest"); // buffers alias, will be incorrect
+	registerUnit<SIMDTest::SIMDTest>(ft, "SIMDTest", kUnitDef_CantAliasInputsToOutputs); // no buffer aliasing
 }
 /*
-template <class Unit>
-void registerUnit( InterfaceTable * ft, const char * name )
-{
-	UnitCtorFunc ctor = detail::constructClass<Unit>;
-	UnitDtorFunc dtor = std::is_trivially_destructible<Unit>::value ? nullptr
-	: detail::destroyClass<Unit>;
-	
-	(*ft->fDefineUnit)( name, sizeof(Unit), ctor, dtor, 0 );
-}
-*/
+ REQUIRED CHANGE IN SC_PLUGIN.HPP - Allow preventing buffer aliasing
+ 
+ template <class Unit>
+ void registerUnit( InterfaceTable * ft, const char * name, int cantAlias = 0 )
+ {
+ UnitCtorFunc ctor = detail::constructClass<Unit>;
+ UnitDtorFunc dtor = std::is_trivially_destructible<Unit>::value ? nullptr
+ : detail::destroyClass<Unit>;
+ 
+ (*ft->fDefineUnit)( name, sizeof(Unit), ctor, dtor, cantAlias );
+ }
+ */
