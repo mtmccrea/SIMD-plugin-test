@@ -46,6 +46,6 @@ benchmark:
 50 instances
 SIMD-alias: 8-9%
 SIMD-noalias: 8-9%
-non-SIMD: 8-9%
-non-simd:
+non-SIMD-alias: 8-9%
+non-SIMD-noalias: 8-9%
 */
